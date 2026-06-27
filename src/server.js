@@ -30,6 +30,7 @@ const publicDir = [
   path.join(__dirname, 'public'),
   path.join(process.cwd(), 'render-google-platform', 'public')
 ].find(candidate => fs.existsSync(path.join(candidate, 'index.html'))) || path.join(process.cwd(), 'public');
+const serverVersion = 'render-google-platform-2026-06-27-root-fix-2';
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 const port = process.env.PORT || 3000;
@@ -51,11 +52,49 @@ app.use(session({
 app.use(express.static(publicDir));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(publicDir, 'index.html'));
+  const indexPath = path.join(publicDir, 'index.html');
+  if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
+  res.type('html').send(`<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вступники та договори</title>
+  <style>
+    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#eef3f7;color:#17202f;font:14px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    main{width:min(560px,100%);padding:28px;border:1px solid #d6e0ea;border-radius:8px;background:#fff;box-shadow:0 24px 56px rgba(16,32,39,.12)}
+    h1{margin:0 0 10px;font-size:26px} p{color:#667085;line-height:1.5} code{display:block;padding:10px;background:#f7fafc;border:1px solid #d6e0ea;border-radius:8px;white-space:pre-wrap}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Платформа запущена</h1>
+    <p>Сервер працює, але не знайшов файл <strong>index.html</strong>. Перевірте, щоб у GitHub була папка <strong>public</strong> з файлами інтерфейсу.</p>
+    <code>Шукав тут: ${escapeHtml_(publicDir)}</code>
+  </main>
+</body>
+</html>`);
+});
+
+app.get('/debug', (req, res) => {
+  res.json({
+    ok: true,
+    version: serverVersion,
+    cwd: process.cwd(),
+    dirname: __dirname,
+    publicDir,
+    indexExists: fs.existsSync(path.join(publicDir, 'index.html')),
+    rootFiles: fs.readdirSync(process.cwd()).slice(0, 80),
+    publicFiles: fs.existsSync(publicDir) ? fs.readdirSync(publicDir).slice(0, 80) : []
+  });
 });
 
 function requireAuth(req, res, next) {
-  if (!req.session.user) return res.status(401).json({ error: 'Потрібно увійти в систему.' });
+  if (!req.session.user) {
+    const acceptsHtml = String(req.headers.accept || '').includes('text/html');
+    if (acceptsHtml) return res.redirect('/');
+    return res.status(401).json({ error: 'Потрібно увійти в систему.' });
+  }
   next();
 }
 
@@ -66,6 +105,16 @@ function requireAdmin(req, res, next) {
 
 function asyncRoute(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+}
+
+function escapeHtml_(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  })[char]);
 }
 
 app.get('/api/health', asyncRoute(async (req, res) => {
