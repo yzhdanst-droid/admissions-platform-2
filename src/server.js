@@ -44,7 +44,7 @@ const publicDir = [
   path.join(__dirname, 'public'),
   path.join(process.cwd(), 'render-google-platform', 'public')
 ].find(candidate => fs.existsSync(path.join(candidate, 'index.html'))) || path.join(process.cwd(), 'public');
-const serverVersion = 'render-google-platform-2026-06-27-full-ui';
+const serverVersion = 'render-google-platform-2026-06-27-login-bootstrap-fix';
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 const port = process.env.PORT || 3000;
