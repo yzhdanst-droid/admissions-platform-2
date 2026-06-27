@@ -1,6 +1,4 @@
-<!doctype html>
-<html lang="uk">
-<head>
+<html lang="uk"><head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Вступники та договори</title>
@@ -8,30 +6,35 @@
 </head>
 <body>
   <main id="loginScreen" class="login-screen">
-    <section class="login-card">
-      <div class="brand-line">
-        <span class="mark">В</span>
-        <div>
-          <strong>Вступники та договори</strong>
-          <span>Render + Google</span>
+    <div class="login-stack">
+      <section class="login-card">
+        <div class="brand-line">
+          <span class="mark">В</span>
+          <div>
+            <strong>Вступники та договори</strong>
+            <span>Платформа приймальної комісії</span>
+          </div>
         </div>
-      </div>
-      <form id="loginForm" class="form-grid">
-        <label>Логін<input name="login" autocomplete="username" required></label>
-        <label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>
-        <button class="primary" type="submit">Вхід</button>
-        <p id="loginError" class="error hidden"></p>
-      </form>
-      <div class="notice">
-        <strong>Пам’ятка оператора</strong>
+        <form id="loginForm" class="form-grid">
+          <label>Логін<input name="login" autocomplete="username" required=""></label>
+          <label>Пароль<input name="password" type="password" autocomplete="current-password" required=""></label>
+          <button class="primary" type="submit">ВХІД</button>
+          <p id="loginError" class="error hidden"></p>
+        </form>
+      </section>
+      <section class="login-notice">
+        <h2>Пам’ятка оператора</h2>
         <ul>
-          <li>Входьте тільки під власним логіном.</li>
-          <li>Перед збереженням перевіряйте ПІБ, спеціальність, шифр і документи.</li>
-          <li>Дані з ЄДЕБО підтягуються автоматично, але їх потрібно звіряти.</li>
-          <li>Порушення законодавства про захист персональних даних тягне відповідальність, встановлену законом.</li>
+          <li>Увійдіть під власним логіном і не передавайте пароль іншим особам.</li>
+          <li>Перед збереженням перевірте ПІБ, спеціальність, шифр особової справи, контакти та документ про освіту.</li>
+          <li>Дані з ЄДЕБО підтягуються автоматично після введення ПІБ, але їх потрібно звірити з документами вступника.</li>
+          <li>Після збереження запис потрапляє до спільної Google-таблиці.</li>
+          <li>Для формування договору використовуйте кнопку «Зберегти і сформувати договір» або «Друк» у списку вступників.</li>
+          <li>Статуси «Рекомендовано», «Заява» і «Військово-обліковий документ» змінює адміністратор.</li>
         </ul>
-      </div>
-    </section>
+        <p><strong>Увага:</strong> порушення законодавства про захист персональних даних тягне за собою відповідальність, встановлену законом. Натискаючи кнопку «ВХІД», Ви підтверджуєте ознайомлення зі змістом повідомлення.</p>
+      </section>
+    </div>
   </main>
 
   <div id="app" class="app hidden">
@@ -44,7 +47,7 @@
         </div>
       </div>
       <nav>
-        <button class="nav active" data-screen="contract">Оформлення</button>
+        <button class="nav active" data-screen="contract">Оформлення договору</button>
         <button class="nav" data-screen="applicants">Вступники</button>
         <button class="nav admin-only" data-screen="import">Імпорт ЄДЕБО</button>
         <button class="nav admin-only" data-screen="settings">Налаштування</button>
@@ -55,7 +58,10 @@
 
     <section class="content">
       <header class="topbar">
-        <h1 id="screenTitle">Оформлення</h1>
+        <div>
+          <h1 id="screenTitle">Оформлення договору</h1>
+          <p class="muted">Спільна база Google Sheets, договори Google Docs/Drive</p>
+        </div>
         <div class="links">
           <a id="sheetLink" href="#" target="_blank" rel="noreferrer">Google таблиця</a>
           <a id="driveLink" href="#" target="_blank" rel="noreferrer">Папка договорів</a>
@@ -63,62 +69,135 @@
       </header>
 
       <section id="contract" class="screen active">
-        <form id="contractForm" class="panel form-grid wide">
-          <div class="row-3">
-            <label>Спеціальність<select name="specialtyId" required></select></label>
-            <label>Оформлення<select name="submissionMode"><option>Очно</option><option>Дистанційно</option></select></label>
-            <label>Місце навчання<select name="studyPlace"><option>Київ</option><option>Польща</option></select></label>
+        <form id="contractForm" class="form-panel">
+          <div class="panel-head">
+            <div>
+              <h2 id="contractFormTitle">Новий договір</h2>
+              <p id="contractFormHint">Заповніть дані вступника. Номер особової справи присвоїться автоматично.</p>
+            </div>
+            <div class="actions">
+              <button class="secondary" type="button" id="resetForm">Очистити</button>
+              <button class="primary" type="submit">Зберегти</button>
+              <button class="secondary strong" type="button" id="saveAndPrint">Зберегти і сформувати договір</button>
+            </div>
           </div>
-          <div class="row-3">
-            <label>Прізвище<input name="surname" required></label>
-            <label>Ім’я<input name="firstName" required></label>
-            <label>По батькові<input name="patronymic"></label>
-          </div>
-          <div class="row-3">
-            <label>Конкурсний бал<input name="competitiveScore"></label>
-            <label>Телефон<input name="phone"></label>
-            <label>Електронна пошта<input name="email" type="email"></label>
-          </div>
-          <div class="row-3">
-            <label>ID персони<input name="personId"></label>
-            <label>Тип документа<input name="educationType"></label>
-            <label>Номер документа<input name="educationNumber"></label>
-          </div>
-          <div class="row-3">
-            <label>Серія документа<input name="educationSeries"></label>
-            <label>Дата документа<input name="educationDate"></label>
-            <label>Ким виданий<input name="educationIssuedBy"></label>
-          </div>
-          <details>
-            <summary>Паспортна частина та замовник</summary>
-            <div class="row-3 pad-top">
+
+          <section class="panel">
+            <h3>Оформлення</h3>
+            <div class="row-3">
+              <label>Спеціальність<select name="specialtyId" required=""></select></label>
+              <label>Як подає документи<select name="submissionMode"><option>Очно</option><option>Дистанційно</option></select></label>
+              <label>Місце навчання<select name="studyPlace"><option>Київ</option><option>Польща</option></select></label>
+            </div>
+            <div class="hint-grid">
+              <span>Шифр формується у форматі префікс + номер, наприклад С25/1.</span>
+              <span>Фінальний номер закріплюється під час збереження.</span>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3>Дані вступника</h3>
+            <div class="row-3">
+              <label>Прізвище<input name="surname" required=""></label>
+              <label>Ім’я<input name="firstName" required=""></label>
+              <label>По батькові<input name="patronymic"></label>
+            </div>
+            <div class="row-3">
+              <label>ПРІЗВИЩЕ<input name="upperSurname" readonly=""></label>
+              <label>ПІБ здобувача<input name="fullName" readonly=""></label>
+              <label>ПІБ здобувача ініціали<input name="initialsName" readonly=""></label>
+            </div>
+            <div class="row-3">
+              <label>Конкурсний бал<input name="competitiveScore"></label>
+              <label>Номер телефону<input name="phone"></label>
+              <label>Електронна пошта<input name="email" type="email"></label>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3>Паспортна частина</h3>
+            <div class="row-3">
               <label>Серія паспорта<input name="passportSeries"></label>
               <label>Номер паспорта<input name="passportNumber"></label>
               <label>ІНН<input name="taxId"></label>
             </div>
             <div class="row-2">
               <label>Ким видано<input name="passportIssuedBy"></label>
-              <label>Коли видано<input name="passportIssuedAt"></label>
+              <label>Коли видано<input name="passportIssuedAt" type="date"></label>
             </div>
             <label>Місце реєстрації<input name="registrationAddress"></label>
-            <label class="checkbox"><input name="payerIsStudent" type="checkbox" checked> Замовник є вступником</label>
-          </details>
-          <div class="actions">
-            <button class="primary" type="submit">Зберегти</button>
-            <button class="secondary" type="button" id="saveAndPrint">Зберегти і сформувати договір</button>
-          </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title-row">
+              <h3>Про замовника</h3>
+              <label class="checkbox"><input name="payerIsStudent" type="checkbox" checked=""> Сплачує сам вступник</label>
+            </div>
+            <div id="payerBlock" class="disabled-block">
+              <div class="row-3">
+                <label>Прізвище<input name="payerSurname"></label>
+                <label>Ім’я<input name="payerFirstName"></label>
+                <label>По батькові<input name="payerPatronymic"></label>
+              </div>
+              <div class="row-3">
+                <label>Серія паспорта<input name="payerPassportSeries"></label>
+                <label>Номер паспорта<input name="payerPassportNumber"></label>
+                <label>ІНН<input name="payerTaxId"></label>
+              </div>
+              <div class="row-2">
+                <label>Ким видано<input name="payerPassportIssuedBy"></label>
+                <label>Коли видано<input name="payerPassportIssuedAt" type="date"></label>
+              </div>
+              <div class="row-2">
+                <label>Місце реєстрації<input name="payerRegistrationAddress"></label>
+                <label>Телефон<input name="payerPhone"></label>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3>Інформація про попередню освіту</h3>
+            <div class="row-3">
+              <label>ID персони<input name="personId"></label>
+              <label>Тип документа<input name="educationType" list="docTypeOptions"></label>
+              <label>Серія документа<input name="educationSeries"></label>
+            </div>
+            <div class="row-3">
+              <label>Номер документа<input name="educationNumber"></label>
+              <label>Дата документа<input name="educationDate" type="date"></label>
+              <label>Ким виданий<input name="educationIssuedBy"></label>
+            </div>
+            <datalist id="docTypeOptions">
+              <option value="Свідоцтво про здобуття повної загальної середньої освіти"></option>
+              <option value="Диплом молодшого спеціаліста"></option>
+              <option value="Диплом бакалавра"></option>
+              <option value="Диплом магістра"></option>
+            </datalist>
+          </section>
         </form>
       </section>
 
       <section id="applicants" class="screen">
         <div class="panel">
           <div class="toolbar">
-            <input id="search" placeholder="Пошук за ПІБ або шифром">
+            <input id="search" placeholder="Пошук за ПІБ, телефоном або шифром">
             <select id="specialtyFilter"><option value="">Усі спеціальності</option></select>
+            <button id="refreshApplicants" class="secondary">Оновити</button>
           </div>
           <div class="table-wrap">
-            <table>
-              <thead><tr><th>Шифр</th><th>ПІБ</th><th>Бал</th><th>Оформлення</th><th>Місце</th><th>Договір</th></tr></thead>
+            <table class="applicants-table">
+              <thead>
+                <tr>
+                  <th>Шифр</th>
+                  <th>ПІБ</th>
+                  <th>Бал</th>
+                  <th>Рекомендовано</th>
+                  <th>Заява</th>
+                  <th>ВОД</th>
+                  <th>Контакти</th>
+                  <th>Дії</th>
+                </tr>
+              </thead>
               <tbody id="applicantsBody"></tbody>
             </table>
           </div>
@@ -128,44 +207,57 @@
       <section id="import" class="screen">
         <div class="panel form-grid">
           <h2>Імпорт ЄДЕБО</h2>
-          <p class="muted">Завантажте CSV або Excel. Дані зберігаються у Google-таблиці і будуть доступні всім операторам.</p>
+          <p class="muted">Завантажте CSV або Excel. Файл зберігається у Google-таблиці і доступний усім користувачам платформи.</p>
           <input id="edeboFile" type="file" accept=".csv,.xlsx,.xls">
-          <button id="uploadEdebo" class="primary">Завантажити</button>
+          <button id="uploadEdebo" class="primary">Завантажити файл</button>
           <p id="importResult" class="muted"></p>
         </div>
       </section>
 
-      <section id="settings" class="screen">
+      <section id="settings" class="screen settings-grid">
         <form id="specialtyForm" class="panel form-grid">
           <h2>Спеціальність</h2>
-          <div class="row-3">
-            <label>Назва<input name="name" required></label>
+          <input name="id" type="hidden">
+          <div class="row-2">
+            <label>Назва<input name="name" required=""></label>
             <label>Код<input name="code"></label>
-            <label>Префікс<input name="prefix" placeholder="С25/" required></label>
           </div>
           <div class="row-2">
+            <label>Префікс<input name="prefix" placeholder="С25/" required=""></label>
             <label>Наступний номер<input name="next" type="number" min="1" value="1"></label>
-            <label>ID шаблону Google Docs<input name="templateId"></label>
           </div>
-          <button class="primary" type="submit">Зберегти спеціальність</button>
+          <label>ID шаблону Google Docs<input name="templateId"></label>
+          <div class="actions">
+            <button class="primary" type="submit">Зберегти спеціальність</button>
+            <button id="newSpecialty" class="secondary" type="button">Нова</button>
+          </div>
         </form>
+        <div class="panel">
+          <h2>Список спеціальностей</h2>
+          <div id="specialtiesList" class="list"></div>
+        </div>
       </section>
 
-      <section id="users" class="screen">
+      <section id="users" class="screen settings-grid">
         <form id="userForm" class="panel form-grid">
           <h2>Користувач</h2>
           <div class="row-3">
-            <label>Логін<input name="login" required></label>
-            <label>Пароль<input name="password" required></label>
+            <label>Логін<input name="login" required=""></label>
+            <label>Пароль<input name="password" required=""></label>
             <label>Роль<select name="role"><option>Оператор</option><option>Адміністратор</option></select></label>
           </div>
           <button class="primary" type="submit">Додати користувача</button>
         </form>
+        <div class="panel">
+          <h2>Список користувачів</h2>
+          <div id="usersList" class="list"></div>
+        </div>
       </section>
     </section>
   </div>
 
   <div id="toast" class="toast hidden"></div>
   <script src="/app.js"></script>
-</body>
-</html>
+
+
+</body></html>
