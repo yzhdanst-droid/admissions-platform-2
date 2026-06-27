@@ -256,6 +256,39 @@ function rowToApplicant(row) {
     applicationStatus: clean(row[5]),
     studyPlace: clean(row[6]),
     militaryDocumentStatus: clean(row[7]),
+    specialtyCode: clean(row[1]).split('/')[0]?.replace(/[^\d]/g, ''),
+    surname: clean(row[12]),
+    firstName: clean(row[13]),
+    patronymic: clean(row[14]),
+    upperSurname: clean(row[15]),
+    initialsName: clean(row[17]),
+    passportSeries: clean(row[18]),
+    passportNumber: clean(row[19]),
+    passportIssuedBy: clean(row[20]),
+    passportIssuedAt: clean(row[21]),
+    taxId: clean(row[22]),
+    phone: clean(row[23]),
+    email: clean(row[24]),
+    registrationAddress: clean(row[25]),
+    payerSurname: clean(row[26]),
+    payerFirstName: clean(row[27]),
+    payerPatronymic: clean(row[28]),
+    payerUpperSurname: clean(row[29]),
+    payerFullName: clean(row[30]),
+    payerInitialsName: clean(row[31]),
+    payerPassportSeries: clean(row[32]),
+    payerPassportNumber: clean(row[33]),
+    payerPassportIssuedBy: clean(row[34]),
+    payerPassportIssuedAt: clean(row[35]),
+    payerTaxId: clean(row[36]),
+    payerPhone: clean(row[37]),
+    payerRegistrationAddress: clean(row[38]),
+    personId: clean(row[40]),
+    educationType: clean(row[41]),
+    educationSeries: clean(row[42]),
+    educationNumber: clean(row[43]),
+    educationDate: clean(row[44]),
+    educationIssuedBy: clean(row[45]),
     id: clean(row[46]) || clean(row[1]),
     createdAt: clean(row[47]),
     createdBy: clean(row[48]),
@@ -291,6 +324,13 @@ function normalizeApplicant(payload, specialty, caseNumber, operator) {
   const upperSurname = surname.toLocaleUpperCase('uk-UA');
   const fullName = [surname, firstName, patronymic].filter(Boolean).join(' ');
   const initialsName = [firstName, upperSurname].filter(Boolean).join(' ');
+  const payerIsStudent = payload.payerIsStudent === true || payload.payerIsStudent === 'true' || payload.payerIsStudent === 'on';
+  const payerSurname = payerIsStudent ? surname : clean(payload.payerSurname);
+  const payerFirstName = payerIsStudent ? firstName : clean(payload.payerFirstName);
+  const payerPatronymic = payerIsStudent ? patronymic : clean(payload.payerPatronymic);
+  const payerUpperSurname = payerSurname.toLocaleUpperCase('uk-UA');
+  const payerFullName = [payerSurname, payerFirstName, payerPatronymic].filter(Boolean).join(' ');
+  const payerInitialsName = [payerFirstName, payerUpperSurname].filter(Boolean).join(' ');
   return {
     ...payload,
     id: crypto.randomUUID(),
@@ -305,6 +345,20 @@ function normalizeApplicant(payload, specialty, caseNumber, operator) {
     upperSurname,
     fullName,
     initialsName,
+    payerIsStudent,
+    payerSurname,
+    payerFirstName,
+    payerPatronymic,
+    payerUpperSurname,
+    payerFullName,
+    payerInitialsName,
+    payerPassportSeries: payerIsStudent ? clean(payload.passportSeries) : clean(payload.payerPassportSeries),
+    payerPassportNumber: payerIsStudent ? clean(payload.passportNumber) : clean(payload.payerPassportNumber),
+    payerPassportIssuedBy: payerIsStudent ? clean(payload.passportIssuedBy) : clean(payload.payerPassportIssuedBy),
+    payerPassportIssuedAt: payerIsStudent ? clean(payload.passportIssuedAt) : clean(payload.payerPassportIssuedAt),
+    payerTaxId: payerIsStudent ? clean(payload.taxId) : clean(payload.payerTaxId),
+    payerPhone: payerIsStudent ? clean(payload.phone) : clean(payload.payerPhone),
+    payerRegistrationAddress: payerIsStudent ? clean(payload.registrationAddress) : clean(payload.payerRegistrationAddress),
     submissionMode: clean(payload.submissionMode) || 'Очно',
     studyPlace: clean(payload.studyPlace) || 'Київ',
     recommendedStatus: clean(payload.recommendedStatus) || 'Ні',
@@ -331,6 +385,22 @@ function applicantRow(data) {
     clean(data.educationNumber), clean(data.educationDate), clean(data.educationIssuedBy), data.id, data.createdAt,
     data.createdBy, data.updatedAt, data.updatedBy, data.templateId, clean(data.contractDocUrl)
   ];
+}
+
+export async function updateApplicantStatus(payload, operator) {
+  await ensureSetup();
+  const allowed = ['recommendedStatus', 'applicationStatus', 'militaryDocumentStatus'];
+  const field = clean(payload.field);
+  if (!allowed.includes(field)) throw new Error('Недозволене поле статусу.');
+  const rows = await getValues(SHEETS.applicants);
+  const index = rows.slice(1).findIndex(row => clean(row[46]) === clean(payload.id));
+  if (index < 0) throw new Error('Вступника не знайдено.');
+  const rowNumber = index + 2;
+  const columnByField = { recommendedStatus: 'E', applicationStatus: 'F', militaryDocumentStatus: 'H' };
+  await setValues(`${SHEETS.applicants}!${columnByField[field]}${rowNumber}`, [[clean(payload.value)]]);
+  await setValues(`${SHEETS.applicants}!AX${rowNumber}:AY${rowNumber}`, [[todayDateTime(), operator]]);
+  await appendValues(`${SHEETS.audit}!A:E`, [[todayDateTime(), operator, `Змінено статус: ${field}`, clean(payload.id), clean(rows[index + 1][2])]]);
+  return { id: clean(payload.id), [field]: clean(payload.value), updatedAt: todayDateTime(), updatedBy: operator };
 }
 
 export async function saveEdeboImport(file) {
