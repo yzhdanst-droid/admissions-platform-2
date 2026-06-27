@@ -1,218 +1,263 @@
-const state = {
-  user: null,
-  specialties: [],
-  applicants: [],
-  users: []
-};
+<html lang="uk"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вступники та договори</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main id="loginScreen" class="login-screen">
+    <div class="login-stack">
+      <section class="login-card">
+        <div class="brand-line">
+          <span class="mark">В</span>
+          <div>
+            <strong>Вступники та договори</strong>
+            <span>Платформа приймальної комісії</span>
+          </div>
+        </div>
+        <form id="loginForm" class="form-grid">
+          <label>Логін<input name="login" autocomplete="username" required=""></label>
+          <label>Пароль<input name="password" type="password" autocomplete="current-password" required=""></label>
+          <button class="primary" type="submit">ВХІД</button>
+          <p id="loginError" class="error hidden"></p>
+        </form>
+      </section>
+      <section class="login-notice">
+        <h2>Пам’ятка оператора</h2>
+        <ul>
+          <li>Увійдіть під власним логіном і не передавайте пароль іншим особам.</li>
+          <li>Перед збереженням перевірте ПІБ, спеціальність, шифр особової справи, контакти та документ про освіту.</li>
+          <li>Дані з ЄДЕБО підтягуються автоматично після введення ПІБ, але їх потрібно звірити з документами вступника.</li>
+          <li>Після збереження запис потрапляє до спільної Google-таблиці.</li>
+          <li>Для формування договору використовуйте кнопку «Зберегти і сформувати договір» або «Друк» у списку вступників.</li>
+          <li>Статуси «Рекомендовано», «Заява» і «Військово-обліковий документ» змінює адміністратор.</li>
+        </ul>
+        <p><strong>Увага:</strong> порушення законодавства про захист персональних даних тягне за собою відповідальність, встановлену законом. Натискаючи кнопку «ВХІД», Ви підтверджуєте ознайомлення зі змістом повідомлення.</p>
+      </section>
+    </div>
+  </main>
 
-const $ = selector => document.querySelector(selector);
-const $$ = selector => Array.from(document.querySelectorAll(selector));
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand-line dark">
+        <span class="mark">В</span>
+        <div>
+          <strong>Вступники</strong>
+          <span id="userBadge">Система</span>
+        </div>
+      </div>
+      <nav>
+        <button class="nav active" data-screen="contract">Оформлення договору</button>
+        <button class="nav" data-screen="applicants">Вступники</button>
+        <button class="nav admin-only" data-screen="import">Імпорт ЄДЕБО</button>
+        <button class="nav admin-only" data-screen="settings">Налаштування</button>
+        <button class="nav admin-only" data-screen="users">Користувачі</button>
+      </nav>
+      <button id="logoutButton" class="ghost">Вийти</button>
+    </aside>
 
-document.addEventListener('DOMContentLoaded', async () => {
-  bindUi();
-  const me = await api('/api/me');
-  if (me.user) {
-    state.user = me.user;
-    await bootstrap();
-    showApp();
-  }
-});
+    <section class="content">
+      <header class="topbar">
+        <div>
+          <h1 id="screenTitle">Оформлення договору</h1>
+          <p class="muted">Спільна база Google Sheets, договори Google Docs/Drive</p>
+        </div>
+        <div class="links">
+          <a id="sheetLink" href="#" target="_blank" rel="noreferrer">Google таблиця</a>
+          <a id="driveLink" href="#" target="_blank" rel="noreferrer">Папка договорів</a>
+        </div>
+      </header>
 
-function bindUi() {
-  $('#loginForm').addEventListener('submit', login);
-  $('#logoutButton').addEventListener('click', logout);
-  $$('.nav').forEach(button => button.addEventListener('click', () => showScreen(button.dataset.screen)));
-  $('#contractForm').addEventListener('submit', saveApplicantOnly);
-  $('#saveAndPrint').addEventListener('click', saveApplicantAndPrint);
-  $('#specialtyForm').addEventListener('submit', saveSpecialty);
-  $('#userForm').addEventListener('submit', saveUser);
-  $('#uploadEdebo').addEventListener('click', uploadEdebo);
-  $('#search').addEventListener('input', renderApplicants);
-  $('#specialtyFilter').addEventListener('change', renderApplicants);
-  ['surname', 'firstName', 'patronymic'].forEach(name => {
-    $('#contractForm').elements[name].addEventListener('blur', lookupEdebo);
-  });
-}
+      <section id="contract" class="screen active">
+        <form id="contractForm" class="form-panel">
+          <div class="panel-head">
+            <div>
+              <h2 id="contractFormTitle">Новий договір</h2>
+              <p id="contractFormHint">Заповніть дані вступника. Номер особової справи присвоїться автоматично.</p>
+            </div>
+            <div class="actions">
+              <button class="secondary" type="button" id="resetForm">Очистити</button>
+              <button class="primary" type="submit">Зберегти</button>
+              <button class="secondary strong" type="button" id="saveAndPrint">Зберегти і сформувати договір</button>
+            </div>
+          </div>
 
-async function login(event) {
-  event.preventDefault();
-  $('#loginError').classList.add('hidden');
-  try {
-    state.user = await api('/api/login', {
-      method: 'POST',
-      body: formJson(event.target)
-    });
-    await bootstrap();
-    showApp();
-  } catch (error) {
-    $('#loginError').textContent = error.message;
-    $('#loginError').classList.remove('hidden');
-  }
-}
+          <section class="panel">
+            <h3>Оформлення</h3>
+            <div class="row-3">
+              <label>Спеціальність<select name="specialtyId" required=""></select></label>
+              <label>Як подає документи<select name="submissionMode"><option>Очно</option><option>Дистанційно</option></select></label>
+              <label>Місце навчання<select name="studyPlace"><option>Київ</option><option>Польща</option></select></label>
+            </div>
+            <div class="hint-grid">
+              <span>Шифр формується у форматі префікс + номер, наприклад С25/1.</span>
+              <span>Фінальний номер закріплюється під час збереження.</span>
+            </div>
+          </section>
 
-async function logout() {
-  await api('/api/logout', { method: 'POST' });
-  state.user = null;
-  $('#loginScreen').classList.remove('hidden');
-  $('#app').classList.add('hidden');
-}
+          <section class="panel">
+            <h3>Дані вступника</h3>
+            <div class="row-3">
+              <label>Прізвище<input name="surname" required=""></label>
+              <label>Ім’я<input name="firstName" required=""></label>
+              <label>По батькові<input name="patronymic"></label>
+            </div>
+            <div class="row-3">
+              <label>ПРІЗВИЩЕ<input name="upperSurname" readonly=""></label>
+              <label>ПІБ здобувача<input name="fullName" readonly=""></label>
+              <label>ПІБ здобувача ініціали<input name="initialsName" readonly=""></label>
+            </div>
+            <div class="row-3">
+              <label>Конкурсний бал<input name="competitiveScore"></label>
+              <label>Номер телефону<input name="phone"></label>
+              <label>Електронна пошта<input name="email" type="email"></label>
+            </div>
+          </section>
 
-async function bootstrap() {
-  const [data, info] = await Promise.all([api('/api/bootstrap'), api('/api/info')]);
-  Object.assign(state, data);
-  $('#sheetLink').href = info.spreadsheetUrl;
-  $('#driveLink').href = info.driveFolderUrl;
-  renderAll();
-}
+          <section class="panel">
+            <h3>Паспортна частина</h3>
+            <div class="row-3">
+              <label>Серія паспорта<input name="passportSeries"></label>
+              <label>Номер паспорта<input name="passportNumber"></label>
+              <label>ІНН<input name="taxId"></label>
+            </div>
+            <div class="row-2">
+              <label>Ким видано<input name="passportIssuedBy"></label>
+              <label>Коли видано<input name="passportIssuedAt" type="date"></label>
+            </div>
+            <label>Місце реєстрації<input name="registrationAddress"></label>
+          </section>
 
-function showApp() {
-  $('#loginScreen').classList.add('hidden');
-  $('#app').classList.remove('hidden');
-  $('#userBadge').textContent = `${state.user.login} · ${state.user.role}`;
-  const isAdmin = state.user.role === 'Адміністратор';
-  $$('.admin-only').forEach(item => item.classList.toggle('hidden', !isAdmin));
-  if (!isAdmin) showScreen('contract');
-}
+          <section class="panel">
+            <div class="section-title-row">
+              <h3>Про замовника</h3>
+              <label class="checkbox"><input name="payerIsStudent" type="checkbox" checked=""> Сплачує сам вступник</label>
+            </div>
+            <div id="payerBlock" class="disabled-block">
+              <div class="row-3">
+                <label>Прізвище<input name="payerSurname"></label>
+                <label>Ім’я<input name="payerFirstName"></label>
+                <label>По батькові<input name="payerPatronymic"></label>
+              </div>
+              <div class="row-3">
+                <label>Серія паспорта<input name="payerPassportSeries"></label>
+                <label>Номер паспорта<input name="payerPassportNumber"></label>
+                <label>ІНН<input name="payerTaxId"></label>
+              </div>
+              <div class="row-2">
+                <label>Ким видано<input name="payerPassportIssuedBy"></label>
+                <label>Коли видано<input name="payerPassportIssuedAt" type="date"></label>
+              </div>
+              <div class="row-2">
+                <label>Місце реєстрації<input name="payerRegistrationAddress"></label>
+                <label>Телефон<input name="payerPhone"></label>
+              </div>
+            </div>
+          </section>
 
-function showScreen(screen) {
-  $$('.nav').forEach(item => item.classList.toggle('active', item.dataset.screen === screen));
-  $$('.screen').forEach(item => item.classList.toggle('active', item.id === screen));
-  $('#screenTitle').textContent = document.querySelector(`.nav[data-screen="${screen}"]`)?.textContent || 'Платформа';
-}
+          <section class="panel">
+            <h3>Інформація про попередню освіту</h3>
+            <div class="row-3">
+              <label>ID персони<input name="personId"></label>
+              <label>Тип документа<input name="educationType" list="docTypeOptions"></label>
+              <label>Серія документа<input name="educationSeries"></label>
+            </div>
+            <div class="row-3">
+              <label>Номер документа<input name="educationNumber"></label>
+              <label>Дата документа<input name="educationDate" type="date"></label>
+              <label>Ким виданий<input name="educationIssuedBy"></label>
+            </div>
+            <datalist id="docTypeOptions">
+              <option value="Свідоцтво про здобуття повної загальної середньої освіти"></option>
+              <option value="Диплом молодшого спеціаліста"></option>
+              <option value="Диплом бакалавра"></option>
+              <option value="Диплом магістра"></option>
+            </datalist>
+          </section>
+        </form>
+      </section>
 
-function renderAll() {
-  renderSpecialties();
-  renderApplicants();
-}
+      <section id="applicants" class="screen">
+        <div class="panel">
+          <div class="toolbar">
+            <input id="search" placeholder="Пошук за ПІБ, телефоном або шифром">
+            <select id="specialtyFilter"><option value="">Усі спеціальності</option></select>
+            <button id="refreshApplicants" class="secondary">Оновити</button>
+          </div>
+          <div class="table-wrap">
+            <table class="applicants-table">
+              <thead>
+                <tr>
+                  <th>Шифр</th>
+                  <th>ПІБ</th>
+                  <th>Бал</th>
+                  <th>Рекомендовано</th>
+                  <th>Заява</th>
+                  <th>ВОД</th>
+                  <th>Контакти</th>
+                  <th>Дії</th>
+                </tr>
+              </thead>
+              <tbody id="applicantsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-function renderSpecialties() {
-  const options = state.specialties
-    .filter(item => item.active !== false)
-    .map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.code ? `${item.code} ${item.name}` : item.name)}</option>`)
-    .join('');
-  $('#contractForm').elements.specialtyId.innerHTML = `<option value="">Оберіть спеціальність</option>${options}`;
-  $('#specialtyFilter').innerHTML = `<option value="">Усі спеціальності</option>${options}`;
-}
+      <section id="import" class="screen">
+        <div class="panel form-grid">
+          <h2>Імпорт ЄДЕБО</h2>
+          <p class="muted">Завантажте CSV або Excel. Файл зберігається у Google-таблиці і доступний усім користувачам платформи.</p>
+          <input id="edeboFile" type="file" accept=".csv,.xlsx,.xls">
+          <button id="uploadEdebo" class="primary">Завантажити файл</button>
+          <p id="importResult" class="muted"></p>
+        </div>
+      </section>
 
-function renderApplicants() {
-  const query = normalize($('#search')?.value || '');
-  const specialtyId = $('#specialtyFilter')?.value || '';
-  const specialtyName = state.specialties.find(item => item.id === specialtyId)?.name || '';
-  const rows = state.applicants
-    .filter(item => !query || normalize(`${item.caseNumber} ${item.fullName}`).includes(query))
-    .filter(item => !specialtyName || item.caseNumber?.startsWith(state.specialties.find(s => s.id === specialtyId)?.prefix || ''))
-    .map(item => `
-      <tr>
-        <td>${escapeHtml(item.caseNumber)}</td>
-        <td>${escapeHtml(item.fullName)}</td>
-        <td>${escapeHtml(item.competitiveScore)}</td>
-        <td>${escapeHtml(item.submissionMode)}</td>
-        <td>${escapeHtml(item.studyPlace)}</td>
-        <td>${item.contractDocUrl ? `<a href="${escapeHtml(item.contractDocUrl)}" target="_blank" rel="noreferrer">Відкрити</a>` : '—'}</td>
-      </tr>
-    `).join('');
-  $('#applicantsBody').innerHTML = rows || '<tr><td colspan="6" class="muted">Записів поки немає</td></tr>';
-}
+      <section id="settings" class="screen settings-grid">
+        <form id="specialtyForm" class="panel form-grid">
+          <h2>Спеціальність</h2>
+          <input name="id" type="hidden">
+          <div class="row-2">
+            <label>Назва<input name="name" required=""></label>
+            <label>Код<input name="code"></label>
+          </div>
+          <div class="row-2">
+            <label>Префікс<input name="prefix" placeholder="С25/" required=""></label>
+            <label>Наступний номер<input name="next" type="number" min="1" value="1"></label>
+          </div>
+          <label>ID шаблону Google Docs<input name="templateId"></label>
+          <div class="actions">
+            <button class="primary" type="submit">Зберегти спеціальність</button>
+            <button id="newSpecialty" class="secondary" type="button">Нова</button>
+          </div>
+        </form>
+        <div class="panel">
+          <h2>Список спеціальностей</h2>
+          <div id="specialtiesList" class="list"></div>
+        </div>
+      </section>
 
-async function saveApplicantOnly(event) {
-  event.preventDefault();
-  const applicant = await saveApplicantFromForm();
-  toast(`Збережено: ${applicant.caseNumber}`);
-}
+      <section id="users" class="screen settings-grid">
+        <form id="userForm" class="panel form-grid">
+          <h2>Користувач</h2>
+          <div class="row-3">
+            <label>Логін<input name="login" required=""></label>
+            <label>Пароль<input name="password" required=""></label>
+            <label>Роль<select name="role"><option>Оператор</option><option>Адміністратор</option></select></label>
+          </div>
+          <button class="primary" type="submit">Додати користувача</button>
+        </form>
+        <div class="panel">
+          <h2>Список користувачів</h2>
+          <div id="usersList" class="list"></div>
+        </div>
+      </section>
+    </section>
+  </div>
 
-async function saveApplicantAndPrint() {
-  if (!$('#contractForm').reportValidity()) return;
-  const applicant = await saveApplicantFromForm();
-  const contract = await api('/api/applicants/contract', { method: 'POST', body: applicant });
-  applicant.contractDocUrl = contract.contractDocUrl;
-  window.open(contract.contractDocUrl, '_blank', 'noopener');
-  toast('Договір сформовано');
-}
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
 
-async function saveApplicantFromForm() {
-  const form = $('#contractForm');
-  const applicant = await api('/api/applicants', { method: 'POST', body: formJson(form) });
-  state.applicants.unshift(applicant);
-  form.reset();
-  form.elements.submissionMode.value = 'Очно';
-  form.elements.studyPlace.value = 'Київ';
-  renderApplicants();
-  return applicant;
-}
 
-async function lookupEdebo() {
-  const form = $('#contractForm');
-  const fullName = [form.elements.surname.value, form.elements.firstName.value, form.elements.patronymic.value].join(' ').trim();
-  if (!fullName) return;
-  const data = await api(`/api/edebo/lookup?fullName=${encodeURIComponent(fullName)}`);
-  if (!data.fullName) return;
-  ['competitiveScore', 'phone', 'email', 'personId', 'educationType', 'educationSeries', 'educationNumber', 'educationDate', 'educationIssuedBy']
-    .forEach(name => {
-      if (data[name] && !form.elements[name].value) form.elements[name].value = data[name];
-    });
-  toast('Дані ЄДЕБО підтягнуто');
-}
-
-async function saveSpecialty(event) {
-  event.preventDefault();
-  const specialty = await api('/api/specialties', { method: 'POST', body: formJson(event.target) });
-  const index = state.specialties.findIndex(item => item.id === specialty.id);
-  if (index >= 0) state.specialties[index] = specialty;
-  else state.specialties.push(specialty);
-  event.target.reset();
-  renderSpecialties();
-  toast('Спеціальність збережено');
-}
-
-async function saveUser(event) {
-  event.preventDefault();
-  state.users = await api('/api/users', { method: 'POST', body: formJson(event.target) });
-  event.target.reset();
-  toast('Користувача додано');
-}
-
-async function uploadEdebo() {
-  const file = $('#edeboFile').files[0];
-  if (!file) return toast('Оберіть файл');
-  const body = new FormData();
-  body.append('file', file);
-  const result = await api('/api/edebo/import', { method: 'POST', body, rawBody: true });
-  $('#importResult').textContent = `Імпортовано записів: ${result.count}. Файл: ${result.fileName}`;
-  toast('Імпорт завершено');
-}
-
-async function api(url, options = {}) {
-  const fetchOptions = { method: options.method || 'GET', headers: {}, credentials: 'same-origin' };
-  if (options.body && !options.rawBody) {
-    fetchOptions.headers['Content-Type'] = 'application/json';
-    fetchOptions.body = JSON.stringify(options.body);
-  } else if (options.body) {
-    fetchOptions.body = options.body;
-  }
-  const response = await fetch(url, fetchOptions);
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'Помилка запиту');
-  return data;
-}
-
-function formJson(form) {
-  return Object.fromEntries(new FormData(form).entries());
-}
-
-function normalize(value) {
-  return String(value || '').toLocaleUpperCase('uk-UA').replace(/\s+/g, ' ').trim();
-}
-
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-  })[char]);
-}
-
-function toast(message) {
-  const box = $('#toast');
-  box.textContent = message;
-  box.classList.remove('hidden');
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => box.classList.add('hidden'), 3200);
-}
+</body></html>
