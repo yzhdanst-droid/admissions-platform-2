@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: admissions-google-platform
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node server.js
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_LOGIN
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GOOGLE_SPREADSHEET_ID
+        sync: false
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false

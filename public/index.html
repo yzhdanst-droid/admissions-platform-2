@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вступники та договори</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main id="loginScreen" class="login-screen">
+    <section class="login-card">
+      <div class="brand-line">
+        <span class="mark">В</span>
+        <div>
+          <strong>Вступники та договори</strong>
+          <span>Render + Google</span>
+        </div>
+      </div>
+      <form id="loginForm" class="form-grid">
+        <label>Логін<input name="login" autocomplete="username" required></label>
+        <label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary" type="submit">Вхід</button>
+        <p id="loginError" class="error hidden"></p>
+      </form>
+      <div class="notice">
+        <strong>Пам’ятка оператора</strong>
+        <ul>
+          <li>Входьте тільки під власним логіном.</li>
+          <li>Перед збереженням перевіряйте ПІБ, спеціальність, шифр і документи.</li>
+          <li>Дані з ЄДЕБО підтягуються автоматично, але їх потрібно звіряти.</li>
+          <li>Порушення законодавства про захист персональних даних тягне відповідальність, встановлену законом.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand-line dark">
+        <span class="mark">В</span>
+        <div>
+          <strong>Вступники</strong>
+          <span id="userBadge">Система</span>
+        </div>
+      </div>
+      <nav>
+        <button class="nav active" data-screen="contract">Оформлення</button>
+        <button class="nav" data-screen="applicants">Вступники</button>
+        <button class="nav admin-only" data-screen="import">Імпорт ЄДЕБО</button>
+        <button class="nav admin-only" data-screen="settings">Налаштування</button>
+        <button class="nav admin-only" data-screen="users">Користувачі</button>
+      </nav>
+      <button id="logoutButton" class="ghost">Вийти</button>
+    </aside>
+
+    <section class="content">
+      <header class="topbar">
+        <h1 id="screenTitle">Оформлення</h1>
+        <div class="links">
+          <a id="sheetLink" href="#" target="_blank" rel="noreferrer">Google таблиця</a>
+          <a id="driveLink" href="#" target="_blank" rel="noreferrer">Папка договорів</a>
+        </div>
+      </header>
+
+      <section id="contract" class="screen active">
+        <form id="contractForm" class="panel form-grid wide">
+          <div class="row-3">
+            <label>Спеціальність<select name="specialtyId" required></select></label>
+            <label>Оформлення<select name="submissionMode"><option>Очно</option><option>Дистанційно</option></select></label>
+            <label>Місце навчання<select name="studyPlace"><option>Київ</option><option>Польща</option></select></label>
+          </div>
+          <div class="row-3">
+            <label>Прізвище<input name="surname" required></label>
+            <label>Ім’я<input name="firstName" required></label>
+            <label>По батькові<input name="patronymic"></label>
+          </div>
+          <div class="row-3">
+            <label>Конкурсний бал<input name="competitiveScore"></label>
+            <label>Телефон<input name="phone"></label>
+            <label>Електронна пошта<input name="email" type="email"></label>
+          </div>
+          <div class="row-3">
+            <label>ID персони<input name="personId"></label>
+            <label>Тип документа<input name="educationType"></label>
+            <label>Номер документа<input name="educationNumber"></label>
+          </div>
+          <div class="row-3">
+            <label>Серія документа<input name="educationSeries"></label>
+            <label>Дата документа<input name="educationDate"></label>
+            <label>Ким виданий<input name="educationIssuedBy"></label>
+          </div>
+          <details>
+            <summary>Паспортна частина та замовник</summary>
+            <div class="row-3 pad-top">
+              <label>Серія паспорта<input name="passportSeries"></label>
+              <label>Номер паспорта<input name="passportNumber"></label>
+              <label>ІНН<input name="taxId"></label>
+            </div>
+            <div class="row-2">
+              <label>Ким видано<input name="passportIssuedBy"></label>
+              <label>Коли видано<input name="passportIssuedAt"></label>
+            </div>
+            <label>Місце реєстрації<input name="registrationAddress"></label>
+            <label class="checkbox"><input name="payerIsStudent" type="checkbox" checked> Замовник є вступником</label>
+          </details>
+          <div class="actions">
+            <button class="primary" type="submit">Зберегти</button>
+            <button class="secondary" type="button" id="saveAndPrint">Зберегти і сформувати договір</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="applicants" class="screen">
+        <div class="panel">
+          <div class="toolbar">
+            <input id="search" placeholder="Пошук за ПІБ або шифром">
+            <select id="specialtyFilter"><option value="">Усі спеціальності</option></select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Шифр</th><th>ПІБ</th><th>Бал</th><th>Оформлення</th><th>Місце</th><th>Договір</th></tr></thead>
+              <tbody id="applicantsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="import" class="screen">
+        <div class="panel form-grid">
+          <h2>Імпорт ЄДЕБО</h2>
+          <p class="muted">Завантажте CSV або Excel. Дані зберігаються у Google-таблиці і будуть доступні всім операторам.</p>
+          <input id="edeboFile" type="file" accept=".csv,.xlsx,.xls">
+          <button id="uploadEdebo" class="primary">Завантажити</button>
+          <p id="importResult" class="muted"></p>
+        </div>
+      </section>
+
+      <section id="settings" class="screen">
+        <form id="specialtyForm" class="panel form-grid">
+          <h2>Спеціальність</h2>
+          <div class="row-3">
+            <label>Назва<input name="name" required></label>
+            <label>Код<input name="code"></label>
+            <label>Префікс<input name="prefix" placeholder="С25/" required></label>
+          </div>
+          <div class="row-2">
+            <label>Наступний номер<input name="next" type="number" min="1" value="1"></label>
+            <label>ID шаблону Google Docs<input name="templateId"></label>
+          </div>
+          <button class="primary" type="submit">Зберегти спеціальність</button>
+        </form>
+      </section>
+
+      <section id="users" class="screen">
+        <form id="userForm" class="panel form-grid">
+          <h2>Користувач</h2>
+          <div class="row-3">
+            <label>Логін<input name="login" required></label>
+            <label>Пароль<input name="password" required></label>
+            <label>Роль<select name="role"><option>Оператор</option><option>Адміністратор</option></select></label>
+          </div>
+          <button class="primary" type="submit">Додати користувача</button>
+        </form>
+      </section>
+    </section>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

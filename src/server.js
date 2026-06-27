@@ -1,0 +1,143 @@
+import express from 'express';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
+import multer from 'multer';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  authenticate,
+  ensureSetup,
+  listApplicants,
+  listSpecialties,
+  listUsers,
+  lookupEdebo,
+  saveApplicant,
+  saveEdeboImport,
+  saveSpecialty,
+  saveUser
+} from './sheets.js';
+import { generateContract } from './documents.js';
+import { contractsFolderId, spreadsheetId } from './google.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const publicDir = [
+  process.cwd(),
+  path.join(process.cwd(), 'public'),
+  path.join(__dirname, '..'),
+  path.join(__dirname, '..', 'public'),
+  __dirname,
+  path.join(__dirname, 'public'),
+  path.join(process.cwd(), 'render-google-platform', 'public')
+].find(candidate => fs.existsSync(path.join(candidate, 'index.html'))) || path.join(process.cwd(), 'public');
+const app = express();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+const port = process.env.PORT || 3000;
+
+app.use(express.json({ limit: '2mb' }));
+app.use(cookieParser());
+app.use(session({
+  name: 'admissions.sid',
+  secret: process.env.SESSION_SECRET || 'local-dev-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 1000 * 60 * 60 * 8
+  }
+}));
+app.use(express.static(publicDir));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+function requireAuth(req, res, next) {
+  if (!req.session.user) return res.status(401).json({ error: 'Потрібно увійти в систему.' });
+  next();
+}
+
+function requireAdmin(req, res, next) {
+  if (req.session.user?.role !== 'Адміністратор') return res.status(403).json({ error: 'Розділ доступний лише адміністратору.' });
+  next();
+}
+
+function asyncRoute(handler) {
+  return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+}
+
+app.get('/api/health', asyncRoute(async (req, res) => {
+  await ensureSetup();
+  res.json({ ok: true });
+}));
+
+app.post('/api/login', asyncRoute(async (req, res) => {
+  const user = await authenticate(req.body.login, req.body.password);
+  if (!user) return res.status(401).json({ error: 'Невірний логін або пароль.' });
+  req.session.user = user;
+  res.json(user);
+}));
+
+app.post('/api/logout', (req, res) => {
+  req.session.destroy(() => res.json({ ok: true }));
+});
+
+app.get('/api/me', (req, res) => {
+  res.json({ user: req.session.user || null });
+});
+
+app.get('/api/info', requireAuth, (req, res) => {
+  res.json({
+    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId()}/edit`,
+    driveFolderUrl: `https://drive.google.com/drive/folders/${contractsFolderId()}`
+  });
+});
+
+app.get('/api/bootstrap', requireAuth, asyncRoute(async (req, res) => {
+  const [specialties, applicants, users] = await Promise.all([
+    listSpecialties(),
+    listApplicants(),
+    req.session.user.role === 'Адміністратор' ? listUsers() : Promise.resolve([])
+  ]);
+  res.json({ user: req.session.user, specialties, applicants, users });
+}));
+
+app.post('/api/specialties', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
+  const specialty = await saveSpecialty(req.body);
+  res.json(specialty);
+}));
+
+app.post('/api/users', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
+  const users = await saveUser(req.body);
+  res.json(users);
+}));
+
+app.post('/api/edebo/import', requireAuth, requireAdmin, upload.single('file'), asyncRoute(async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Оберіть CSV або Excel файл.' });
+  res.json(await saveEdeboImport(req.file));
+}));
+
+app.get('/api/edebo/lookup', requireAuth, asyncRoute(async (req, res) => {
+  res.json(await lookupEdebo(req.query.fullName || '') || {});
+}));
+
+app.post('/api/applicants', requireAuth, asyncRoute(async (req, res) => {
+  const applicant = await saveApplicant(req.body, req.session.user.login);
+  res.json(applicant);
+}));
+
+app.post('/api/applicants/contract', requireAuth, asyncRoute(async (req, res) => {
+  const result = await generateContract(req.body);
+  res.json(result);
+}));
+
+app.use((error, req, res, next) => {
+  console.error(error);
+  res.status(500).json({ error: error.message || 'Помилка сервера.' });
+});
+
+app.listen(port, () => {
+  console.log(`Admissions platform started on port ${port}`);
+});
