@@ -4,8 +4,23 @@ import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import {
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.join(__dirname, '..');
+const moduleDirs = [
+  __dirname,
+  projectRoot,
+  process.cwd(),
+  path.join(process.cwd(), 'src'),
+  path.join(process.cwd(), 'render-google-platform', 'src')
+];
+const modulePath = name => {
+  const found = moduleDirs.find(candidate => fs.existsSync(path.join(candidate, name)));
+  if (!found) throw new Error(`Не знайдено файл ${name}. Перевірте структуру GitHub: файли мають бути у папці src або поруч із package.json.`);
+  return pathToFileURL(path.join(found, name)).href;
+};
+const {
   authenticate,
   ensureSetup,
   listApplicants,
@@ -16,21 +31,19 @@ import {
   saveEdeboImport,
   saveSpecialty,
   saveUser
-} from './sheets.js';
-import { generateContract } from './documents.js';
-import { contractsFolderId, spreadsheetId } from './google.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+} = await import(modulePath('sheets.js'));
+const { generateContract } = await import(modulePath('documents.js'));
+const { contractsFolderId, spreadsheetId } = await import(modulePath('google.js'));
 const publicDir = [
   process.cwd(),
   path.join(process.cwd(), 'public'),
-  path.join(__dirname, '..'),
-  path.join(__dirname, '..', 'public'),
+  projectRoot,
+  path.join(projectRoot, 'public'),
   __dirname,
   path.join(__dirname, 'public'),
   path.join(process.cwd(), 'render-google-platform', 'public')
 ].find(candidate => fs.existsSync(path.join(candidate, 'index.html'))) || path.join(process.cwd(), 'public');
-const serverVersion = 'render-google-platform-2026-06-27-root-fix-2';
+const serverVersion = 'render-google-platform-2026-06-27-module-finder';
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 const port = process.env.PORT || 3000;
