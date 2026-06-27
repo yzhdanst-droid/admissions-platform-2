@@ -160,6 +160,15 @@ h1, h2, h3 { margin: 0; }
   text-decoration: none;
   font-weight: 900;
 }
+.app-error {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid #fecdd3;
+  border-radius: 8px;
+  color: #9f1239;
+  background: #fff1f2;
+  font-weight: 800;
+}
 .screen { display: none; }
 .screen.active { display: block; }
 .panel, .panel-head {
